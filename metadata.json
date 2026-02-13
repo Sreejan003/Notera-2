@@ -1,0 +1,8 @@
+{
+  "name": "Notera - The University Social Academic Hub",
+  "description": "A comprehensive platform for students and teachers featuring Reddit-style forums, AI-powered study labs, note sharing, and detailed academic performance tracking with local university focus.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
