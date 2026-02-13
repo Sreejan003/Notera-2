@@ -2,13 +2,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 export const generateQuiz = async (subject: string, topic: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Directly use process.env.API_KEY as per GenAI SDK guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `You are an elite university professor. Generate a high-quality, mathematically rigorous 5-question multiple choice quiz about "${topic}" in the field of "${subject}". 
-      If the topic involves math or logic, ensure the questions require analytical thinking.
+      IMPORTANT: Use actual mathematical signs and LaTeX formatting for all equations (e.g., use $x^2$ for inline and $$ ... $$ for blocks). 
+      Ensure the questions require analytical thinking.
       Return ONLY a JSON array of objects with the following keys: 'question', 'options' (array of 4 strings), 'correctAnswer' (0-3 index), and 'explanation'.`,
       config: {
         responseMimeType: "application/json",
@@ -41,13 +43,15 @@ export const generateQuiz = async (subject: string, topic: string) => {
 };
 
 export const solveDoubt = async (subject: string, question: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Directly use process.env.API_KEY as per GenAI SDK guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `You are a helpful university professor specializing in ${subject}. Provide a mathematically and logically sound explanation for the following student question: "${question}". 
-      Use step-by-step reasoning. If equations are needed, use plain text or clear notations.`,
+      IMPORTANT: You MUST use actual mathematical signs and LaTeX notation for all formulas, variables, and calculations. Use $...$ for inline math and $$...$$ for display math. 
+      Use step-by-step reasoning. Make it look like a professional textbook entry.`,
       config: {
         temperature: 0.4,
         topP: 0.95,
@@ -63,7 +67,8 @@ export const solveDoubt = async (subject: string, question: string) => {
 };
 
 export const checkContentSafety = async (text: string): Promise<{ safe: boolean; reason?: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Directly use process.env.API_KEY as per GenAI SDK guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({

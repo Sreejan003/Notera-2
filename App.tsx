@@ -12,6 +12,19 @@ import { User } from './types';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('notera-theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('notera-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('notera-theme', 'light');
+    }
+  }, [darkMode]);
 
   const handleLogin = (newUser: User) => {
     setUser(newUser);
@@ -28,7 +41,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard isDarkMode={darkMode} />;
       case 'forum':
         return <Forum university={user.university} />;
       case 'notes':
@@ -38,61 +51,62 @@ const App: React.FC = () => {
       case 'library':
         return <Library />;
       default:
-        return <Dashboard />;
+        return <Dashboard isDarkMode={darkMode} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar - Fixed */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+    <div className="flex h-screen bg-slate-50 dark:bg-dark-bg overflow-hidden theme-transition">
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        onLogout={handleLogout}
+        darkMode={darkMode}
+        toggleDarkMode={() => setDarkMode(!darkMode)}
+      />
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between bg-white/80 backdrop-blur-md px-8 py-4 border-b border-slate-200">
+        <header className="sticky top-0 z-30 flex items-center justify-between bg-white/80 dark:bg-dark-card/80 backdrop-blur-md px-8 py-4 border-b border-slate-200 dark:border-slate-800 transition-colors">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-slate-800 capitalize">
-              {activeTab === 'ailab' ? 'Quiz AI' : activeTab}
+            <h1 className="text-xl font-black text-slate-800 dark:text-white capitalize tracking-tight">
+              {activeTab === 'ailab' ? 'AI Quiz Lab' : activeTab}
             </h1>
-            <div className="h-6 w-px bg-slate-200"></div>
-            <div className="bg-slate-100 text-slate-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+            <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 border border-transparent dark:border-slate-700">
               <i className="fa-solid fa-building-columns text-indigo-500"></i>
               {user.university}
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+            <button className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               <i className="fa-solid fa-bell"></i>
             </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-slate-800">{user.name}</p>
-                <p className="text-xs text-slate-500 font-medium capitalize">{user.role} • {user.classOrDept}</p>
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-black text-slate-800 dark:text-white">{user.name}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{user.role} • {user.classOrDept}</p>
               </div>
               <img 
                 src={user.avatar} 
                 alt="Avatar" 
-                className="w-10 h-10 rounded-full border-2 border-indigo-100 object-cover"
+                className="w-10 h-10 rounded-full border-2 border-indigo-100 dark:border-indigo-900 object-cover"
               />
             </div>
           </div>
         </header>
 
-        {/* View Content */}
         <div className="p-8 pb-12">
           {renderContent()}
         </div>
       </main>
 
-      {/* Floating Action Button */}
       <button 
-        className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg shadow-indigo-200 flex items-center justify-center text-xl transition-all hover:scale-110 active:scale-95 z-50"
-        title="Quick Quiz AI"
+        className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-2xl shadow-indigo-500/30 flex items-center justify-center text-xl transition-all hover:scale-110 active:scale-95 z-50 group"
+        title="Quick AI Help"
         onClick={() => setActiveTab('ailab')}
       >
-        <i className="fa-solid fa-brain"></i>
+        <i className="fa-solid fa-wand-magic-sparkles group-hover:rotate-12 transition-transform"></i>
       </button>
     </div>
   );
