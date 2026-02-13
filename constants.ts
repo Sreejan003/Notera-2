@@ -54,21 +54,39 @@ export const MOCK_NOTES: Note[] = [
 export const MOCK_BOOKS: Book[] = [
   {
     id: 'b1',
-    title: 'The Art of Computer Programming',
-    author: 'Donald Knuth',
-    subject: 'Algorithms',
-    link: 'https://amazon.com',
-    price: '$45.99',
-    image: 'https://picsum.photos/seed/b1/200/300'
+    title: 'Concepts of Physics (Vol. 1 & 2)',
+    author: 'H.C. Verma',
+    subject: 'Physics',
+    link: 'https://www.amazon.in/Concepts-Physics-1-2-2019-20-Set-Session/dp/B07QNVY9W6',
+    price: '₹945',
+    image: 'https://m.media-amazon.com/images/I/81IpxvH-SLL.jpg'
   },
   {
     id: 'b2',
-    title: 'Organic Chemistry: A Biological Approach',
-    author: 'John McMurry',
-    subject: 'Chemistry',
-    link: 'https://amazon.com',
-    price: '$89.00',
-    image: 'https://picsum.photos/seed/b2/200/300'
+    title: 'Higher Engineering Mathematics',
+    author: 'B.S. Grewal',
+    subject: 'Engineering',
+    link: 'https://www.amazon.in/Higher-Engineering-Mathematics-B-S-Grewal/dp/8193328493',
+    price: '₹850',
+    image: 'https://m.media-amazon.com/images/I/81-pS9P6V+L.jpg'
+  },
+  {
+    id: 'b3',
+    title: 'Indian Art and Culture',
+    author: 'Nitin Singhania',
+    subject: 'History/UPSC',
+    link: 'https://www.amazon.in/Indian-Art-Culture-Nitin-Singhania/dp/9354601804',
+    price: '₹575',
+    image: 'https://m.media-amazon.com/images/I/71X8k8-p8dL.jpg'
+  },
+  {
+    id: 'b4',
+    title: 'Object Oriented Programming with C++',
+    author: 'E. Balagurusamy',
+    subject: 'Computer Science',
+    link: 'https://www.amazon.in/Object-Oriented-Programming-C-8th/dp/9389949181',
+    price: '₹620',
+    image: 'https://m.media-amazon.com/images/I/71YyP626PqL.jpg'
   }
 ];
 

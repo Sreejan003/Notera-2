@@ -4,14 +4,15 @@ import React from 'react';
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard' },
     { id: 'forum', icon: 'fa-comments', label: 'Community Forum' },
     { id: 'notes', icon: 'fa-file-lines', label: 'Note Repository' },
-    { id: 'ailab', icon: 'fa-robot', label: 'AI Study Lab' },
+    { id: 'ailab', icon: 'fa-brain', label: 'Quiz AI' },
     { id: 'library', icon: 'fa-book', label: 'Library & Refs' },
   ];
 
@@ -47,16 +48,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
       </nav>
 
       <div className="p-6">
-        <div className="p-6 bg-slate-900 rounded-2xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <h4 className="text-white font-bold mb-1">Upgrade to Pro</h4>
-            <p className="text-slate-400 text-xs mb-4">Unlimited AI Quiz generation and 50GB storage.</p>
-            <button className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-bold transition-colors">
-              Go Premium
-            </button>
-          </div>
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-600/20 rounded-full blur-2xl group-hover:bg-indigo-600/40 transition-all"></div>
-        </div>
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all font-semibold"
+        >
+          <i className="fa-solid fa-arrow-right-from-bracket"></i>
+          Logout
+        </button>
       </div>
     </aside>
   );

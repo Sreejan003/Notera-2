@@ -2,9 +2,11 @@
 export interface User {
   id: string;
   name: string;
-  role: 'student' | 'teacher';
+  role: 'student' | 'teacher' | 'admin';
   university: string;
   avatar: string;
+  age?: number;
+  classOrDept?: string;
 }
 
 export interface Post {
@@ -18,6 +20,7 @@ export interface Post {
   comments: number;
   tags: string[];
   createdAt: string;
+  imageUrl?: string;
 }
 
 export interface Note {
