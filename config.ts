@@ -12,4 +12,4 @@
 // export const API_KEY = 'AbCdEfGhIjKlMnOpQrStUvWxYz_1234567890';
 // ------------------------------------------------------------------
 
-export const API_KEY = 'AIzaSyDOHecctLrCgFuxlotl-D0MW8FvaKcUGOo';
+export const API_KEY = 'sk-abcdef1234567890abcdef1234567890abcdef12';
