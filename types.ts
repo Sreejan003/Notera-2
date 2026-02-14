@@ -7,6 +7,24 @@ export interface User {
   avatar: string;
   age?: number;
   classOrDept?: string;
+  department?: string;
+}
+
+export interface Comment {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  authorName: string;
+  createdAt: string;
+  department?: string;
 }
 
 export interface Post {
@@ -16,11 +34,16 @@ export interface Post {
   authorRole: string;
   title: string;
   content: string;
+  subject: string;
   upvotes: number;
   comments: number;
+  commentsList?: Comment[];
   tags: string[];
   createdAt: string;
   imageUrl?: string;
+  isResolved?: boolean;
+  resolution?: string;
+  isPinned?: boolean; 
 }
 
 export interface Note {
@@ -32,6 +55,7 @@ export interface Note {
   rating: number;
   previewUrl: string;
   fileSize: string;
+  fileUrl: string;
 }
 
 export interface Book {
@@ -49,4 +73,12 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: number;
   explanation: string;
+}
+
+export interface AcademicStats {
+  totalQuizzes: number;
+  studentQuizzes: number;
+  teacherQuizzes: number;
+  doubtsRaised: number;
+  doubtsResolved: number;
 }

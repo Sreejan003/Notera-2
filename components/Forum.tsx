@@ -1,138 +1,113 @@
 
-import React, { useState, useRef } from 'react';
-import { MOCK_POSTS, CENSORED_WORDS } from '../constants';
+import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { MOCK_POSTS } from '../constants';
 import { checkContentSafety } from '../services/geminiService';
-import { Post } from '../types';
+import { Post, User, Comment } from '../types';
 
 interface ForumProps {
-  university: string;
+  user: User;
 }
 
-const Forum: React.FC<ForumProps> = ({ university }) => {
-  const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
+const Forum: React.FC<ForumProps> = ({ user }) => {
+  const [posts, setPosts] = useState<Post[]>(() => {
+    const saved = localStorage.getItem('notera_forum_posts');
+    return saved ? JSON.parse(saved) : MOCK_POSTS.filter(p => !p.isResolved);
+  });
+
+  const [userVotes, setUserVotes] = useState<{ [key: string]: 'up' | 'down' | null }>(() => {
+    const savedVotes = localStorage.getItem(`notera_votes_${user.id}`);
+    return savedVotes ? JSON.parse(savedVotes) : {};
+  });
+
   const [showPostModal, setShowPostModal] = useState(false);
-  const [newPost, setNewPost] = useState({ title: '', content: '', tags: '', imageUrl: '' });
+  const [activePostForComments, setActivePostForComments] = useState<Post | null>(null);
+  const [newPost, setNewPost] = useState({ title: '', content: '', tags: '', subject: 'General', imageUrl: '' });
+  const [newCommentText, setNewCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCommenting, setIsCommenting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewPost({ ...newPost, imageUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    localStorage.setItem('notera_forum_posts', JSON.stringify(posts));
+  }, [posts]);
+
+  useEffect(() => {
+    localStorage.setItem(`notera_votes_${user.id}`, JSON.stringify(userVotes));
+  }, [userVotes, user.id]);
+
+  const handleVote = (postId: string, direction: 'up' | 'down') => {
+    const currentVote = userVotes[postId] || null;
+    let scoreDelta = 0;
+    let nextVote: 'up' | 'down' | null = null;
+
+    if (direction === 'up') {
+      if (currentVote === 'up') { scoreDelta = -1; nextVote = null; }
+      else if (currentVote === 'down') { scoreDelta = 2; nextVote = 'up'; }
+      else { scoreDelta = 1; nextVote = 'up'; }
+    } else {
+      if (currentVote === 'down') { scoreDelta = 1; nextVote = null; }
+      else if (currentVote === 'up') { scoreDelta = -2; nextVote = 'down'; }
+      else { scoreDelta = -1; nextVote = 'down'; }
     }
+
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: p.upvotes + scoreDelta } : p));
+    setUserVotes(prev => ({ ...prev, [postId]: nextVote }));
   };
 
-  const handlePostSubmit = async () => {
+  const handlePostSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!newPost.title || !newPost.content) return;
     setIsSubmitting(true);
-
-    const safety = await checkContentSafety(`${newPost.title} ${newPost.content}`);
-    
-    if (!safety.safe) {
-      alert(`Post blocked by Notera AI Moderator: ${safety.reason}`);
-      setIsSubmitting(false);
-      return;
-    }
-
-    const containsCensored = CENSORED_WORDS.some(word => 
-      newPost.title.toLowerCase().includes(word) || newPost.content.toLowerCase().includes(word)
-    );
-
-    if (containsCensored) {
-      alert('Post contains restricted language. Please revise.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const post: Post = {
-      id: Math.random().toString(36).substr(2, 9),
-      authorId: 'u-me',
-      authorName: 'Alex Rivers',
-      authorRole: 'Student',
-      title: newPost.title,
-      content: newPost.content,
-      upvotes: 0,
-      comments: 0,
-      tags: newPost.tags.split(',').map(t => t.trim()).filter(t => t !== ''),
-      createdAt: 'Just now',
-      imageUrl: newPost.imageUrl || undefined
-    };
-
-    setPosts([post, ...posts]);
-    setNewPost({ title: '', content: '', tags: '', imageUrl: '' });
-    setShowPostModal(false);
-    setIsSubmitting(false);
+    try {
+      const safety = await checkContentSafety(`${newPost.title} ${newPost.content}`);
+      if (!safety.safe) { alert(`Blocked: ${safety.reason}`); setIsSubmitting(false); return; }
+      const post: Post = {
+        id: Math.random().toString(36).substr(2, 9),
+        authorId: user.id, authorName: user.name,
+        authorRole: user.role === 'teacher' ? 'Professor' : 'Student',
+        title: newPost.title, content: newPost.content, subject: newPost.subject,
+        upvotes: 0, comments: 0, commentsList: [],
+        tags: newPost.tags.split(',').map(t => t.trim()).filter(t => t !== ''),
+        createdAt: 'Just now', imageUrl: newPost.imageUrl || undefined, isResolved: false
+      };
+      setPosts([post, ...posts]);
+      setNewPost({ title: '', content: '', tags: '', subject: 'General', imageUrl: '' });
+      setShowPostModal(false);
+    } catch (err) { alert("Communication error."); } finally { setIsSubmitting(false); }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-20">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">{university} Hub</h2>
-          <p className="text-slate-500">Discuss subjects, exams, and campus life.</p>
+          <h2 className="text-3xl font-black text-brand-primary dark:text-white tracking-tight">Student Community</h2>
+          <p className="text-brand-tertiary font-medium italic">Shared university discussions.</p>
         </div>
-        <button 
-          onClick={() => setShowPostModal(true)}
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all flex items-center gap-2"
-        >
-          <i className="fa-solid fa-plus"></i>
-          New Discussion
+        <button onClick={() => setShowPostModal(true)} className="px-8 py-4 bg-brand-primary hover:bg-brand-secondary text-white rounded-2xl font-black shadow-xl transition-all flex items-center gap-2 active:scale-95">
+          <i className="fa-solid fa-plus"></i> New Post
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {posts.map((post) => (
-          <div key={post.id} className="bg-white rounded-2xl border border-slate-200 p-6 hover:border-indigo-200 transition-all group">
-            <div className="flex gap-6">
-              <div className="flex flex-col items-center gap-2">
-                <button className="text-slate-400 hover:text-indigo-600 transition-colors">
-                  <i className="fa-solid fa-chevron-up text-xl"></i>
-                </button>
-                <span className="font-bold text-slate-700">{post.upvotes}</span>
-                <button className="text-slate-400 hover:text-rose-600 transition-colors">
-                  <i className="fa-solid fa-chevron-down text-xl"></i>
-                </button>
+          <div key={post.id} className="bg-white dark:bg-dark-card rounded-[2rem] border border-brand-tertiary/10 dark:border-dark-border p-8 shadow-sm transition-all hover:border-brand-secondary">
+            <div className="flex gap-8">
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={() => handleVote(post.id, 'up')} className={`p-2 transition-all ${userVotes[post.id] === 'up' ? 'text-brand-secondary scale-110' : 'text-slate-300 dark:text-slate-700 hover:text-brand-tertiary'}`}><i className="fa-solid fa-circle-chevron-up text-2xl"></i></button>
+                <span className={`font-black text-sm ${userVotes[post.id] === 'up' ? 'text-brand-secondary' : userVotes[post.id] === 'down' ? 'text-brand-primary' : 'text-slate-800 dark:text-slate-300'}`}>{post.upvotes}</span>
+                <button onClick={() => handleVote(post.id, 'down')} className={`p-2 transition-all ${userVotes[post.id] === 'down' ? 'text-brand-primary scale-110' : 'text-slate-300 dark:text-slate-700 hover:text-brand-tertiary'}`}><i className="fa-solid fa-circle-chevron-down text-2xl"></i></button>
               </div>
-
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-2">
-                  <span className={`px-2 py-0.5 rounded ${post.authorRole === 'Teacher' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                    {post.authorRole}
-                  </span>
-                  <span>• Posted by {post.authorName}</span>
-                  <span>• {post.createdAt}</span>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-[10px] font-bold text-brand-tertiary uppercase tracking-widest">{post.authorName} • {post.subject} • {post.createdAt}</span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">
-                  {post.title}
-                </h3>
-                <p className="text-slate-600 leading-relaxed mb-4">
-                  {post.content}
-                </p>
-                {post.imageUrl && (
-                  <div className="mb-4 rounded-2xl overflow-hidden border border-slate-100 max-h-96">
-                    <img src={post.imageUrl} alt="Post Attachment" className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="flex items-center gap-4">
-                  <button className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-600">
-                    <i className="fa-regular fa-message"></i>
-                    {post.comments} Comments
-                  </button>
-                  <button className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-600">
-                    <i className="fa-solid fa-share-nodes"></i>
-                    Share
-                  </button>
-                  <div className="flex gap-2 ml-auto">
-                    {post.tags.map((tag, idx) => (
-                      <span key={idx} className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-1 rounded">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
+                <h3 className="text-xl font-black text-brand-primary dark:text-white mb-3 tracking-tight">{post.title}</h3>
+                <div className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium mb-4 markdown-content"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{post.content}</ReactMarkdown></div>
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-brand-tertiary/10">
+                  <button onClick={() => setActivePostForComments(post)} className="flex items-center gap-2 text-xs font-black text-brand-tertiary hover:text-brand-secondary transition-colors"><i className="fa-regular fa-message"></i> {post.comments} Comments</button>
                 </div>
               </div>
             </div>
@@ -141,91 +116,15 @@ const Forum: React.FC<ForumProps> = ({ university }) => {
       </div>
 
       {showPostModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-800">Start a Discussion</h3>
-              <button onClick={() => setShowPostModal(false)} className="text-slate-400 hover:text-slate-600">
-                <i className="fa-solid fa-xmark text-xl"></i>
-              </button>
-            </div>
-            <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Title</label>
-                <input 
-                  type="text" 
-                  value={newPost.title}
-                  onChange={(e) => setNewPost({...newPost, title: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="What's on your mind?"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Content</label>
-                <textarea 
-                  value={newPost.content}
-                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none min-h-[120px]"
-                  placeholder="Elaborate on your topic..."
-                ></textarea>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Attachment (Optional)</label>
-                {!newPost.imageUrl ? (
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-8 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-400 hover:text-indigo-500 transition-all bg-slate-50"
-                  >
-                    <i className="fa-solid fa-image text-2xl mb-2"></i>
-                    <span className="text-sm font-bold">Add Image to Discussion</span>
-                    <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
-                  </button>
-                ) : (
-                  <div className="relative group rounded-2xl overflow-hidden border border-slate-200">
-                    <img src={newPost.imageUrl} className="w-full h-48 object-cover" alt="Preview" />
-                    <button 
-                      onClick={() => setNewPost({...newPost, imageUrl: ''})}
-                      className="absolute top-2 right-2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <i className="fa-solid fa-trash-can text-sm"></i>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Tags (comma separated)</label>
-                <input 
-                  type="text" 
-                  value={newPost.tags}
-                  onChange={(e) => setNewPost({...newPost, tags: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="CS, Homework, Exams"
-                />
-              </div>
-              <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex gap-3">
-                <i className="fa-solid fa-shield-halved text-amber-500 mt-1"></i>
-                <p className="text-xs text-amber-700 leading-relaxed font-medium">
-                  <strong>Notera Moderation:</strong> Images and text are scanned by AI for harassment, academic dishonesty, and non-educational NSFW content.
-                </p>
-              </div>
-            </div>
-            <div className="p-6 bg-slate-50 flex gap-3">
-              <button 
-                onClick={() => setShowPostModal(false)}
-                className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handlePostSubmit}
-                disabled={isSubmitting}
-                className="flex-[2] py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg shadow-indigo-100"
-              >
-                {isSubmitting ? <i className="fa-solid fa-circle-notch fa-spin"></i> : 'Publish Post'}
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-primary/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-dark-card w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+             <div className="p-8 border-b border-brand-tertiary/10 flex items-center justify-between"><h3 className="text-xl font-black text-brand-primary dark:text-white">Start a Discussion</h3><button onClick={() => setShowPostModal(false)} className="text-brand-tertiary hover:text-rose-500"><i className="fa-solid fa-xmark text-xl"></i></button></div>
+             <form onSubmit={handlePostSubmit} className="p-8 space-y-5">
+                <div><label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Category</label><select value={newPost.subject} onChange={(e) => setNewPost({...newPost, subject: e.target.value})} className="w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/10 rounded-2xl outline-none font-bold text-brand-primary dark:text-white">{['General', 'Social', 'Hobbies', 'Events', 'Clubs'].map(s => <option key={s}>{s}</option>)}</select></div>
+                <div><label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Post Title</label><input type="text" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} className="w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/10 rounded-2xl font-bold text-brand-primary dark:text-white outline-none focus:border-brand-secondary transition-all" placeholder="Topic name..." required /></div>
+                <div><label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Description</label><textarea value={newPost.content} onChange={(e) => setNewPost({...newPost, content: e.target.value})} className="w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/10 rounded-2xl font-bold min-h-[120px] text-brand-primary dark:text-white outline-none focus:border-brand-secondary transition-all" placeholder="Share your thoughts..." required /></div>
+                <div className="flex gap-3 pt-4"><button type="button" onClick={() => setShowPostModal(false)} className="flex-1 py-4 font-black text-brand-tertiary rounded-2xl hover:bg-brand-surface transition-all">Cancel</button><button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-brand-primary text-white rounded-2xl font-black shadow-xl disabled:opacity-50 transition-all hover:bg-brand-secondary active:scale-95">{isSubmitting ? <i className="fa-solid fa-circle-notch fa-spin"></i> : 'Publish Post'}</button></div>
+             </form>
           </div>
         </div>
       )}

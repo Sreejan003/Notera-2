@@ -2,178 +2,184 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  AreaChart, Area 
+  AreaChart, Area, PieChart, Pie, Cell 
 } from 'recharts';
+import { User, AcademicStats, Post } from '../types';
 
 interface DashboardProps {
+  user: User;
   isDarkMode?: boolean;
+  onTabChange?: (tab: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ isDarkMode }) => {
-  const [metrics, setMetrics] = useState({
-    studyHours: 0,
-    notesUploaded: 12,
-    doubtsSolved: 45,
-    quizAccuracy: 88,
-    streak: 14
-  });
+const Dashboard: React.FC<DashboardProps> = ({ user, isDarkMode, onTabChange }) => {
+  const [selectedDept, setSelectedDept] = useState('All Departments');
+  const [liveStats, setLiveStats] = useState({ raised: 0, resolved: 0 });
 
-  const [isStudying, setIsStudying] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
-
-  const [weeklyData] = useState([
-    { name: 'Mon', hours: 4.5 },
-    { name: 'Tue', hours: 3.2 },
-    { name: 'Wed', hours: 6.1 },
-    { name: 'Thu', hours: 2.8 },
-    { name: 'Fri', hours: 5.4 },
-    { name: 'Sat', hours: 1.2 },
-    { name: 'Sun', hours: 0.5 },
-  ]);
-
-  const [improvementData] = useState([
-    { name: 'Wk 1', score: 65 },
-    { name: 'Wk 2', score: 72 },
-    { name: 'Wk 3', score: 85 },
-    { name: 'Wk 4', score: 88 },
-  ]);
-
-  const toggleStudySession = () => {
-    if (!isStudying) {
-      setIsStudying(true);
-      setStartTime(Date.now());
-    } else {
-      setIsStudying(false);
-      if (startTime) {
-        const elapsedHrs = (Date.now() - startTime) / (1000 * 3600);
-        const addedHours = Math.max(0.1, Number(elapsedHrs.toFixed(2)));
-        setMetrics(prev => ({
-          ...prev,
-          studyHours: Number((prev.studyHours + addedHours).toFixed(2))
-        }));
-      }
+  useEffect(() => {
+    // Load doubts from storage to calculate real stats
+    const storedDoubts = localStorage.getItem('notera_doubts');
+    if (storedDoubts) {
+      const doubts: Post[] = JSON.parse(storedDoubts);
+      setLiveStats({
+        raised: doubts.length,
+        resolved: doubts.filter(d => d.isResolved).length
+      });
     }
+  }, []);
+
+  // Performance Data
+  const stats: AcademicStats = {
+    totalQuizzes: 156,
+    studentQuizzes: 120,
+    teacherQuizzes: 36,
+    doubtsRaised: liveStats.raised || 89,
+    doubtsResolved: liveStats.resolved || 72
   };
 
-  const chartTextColor = isDarkMode ? '#94a3b8' : '#64748b';
-  const gridColor = isDarkMode ? '#1e293b' : '#f1f5f9';
+  const pendingDoubts = stats.doubtsRaised - stats.doubtsResolved;
 
-  const stats = [
-    { label: 'Total study hours', value: metrics.studyHours.toString(), unit: 'hrs', icon: 'fa-clock', color: 'indigo' },
-    { label: 'Notes uploaded', value: metrics.notesUploaded.toString(), unit: 'docs', icon: 'fa-file-upload', color: 'emerald' },
-    { label: 'Doubts solved', value: metrics.doubtsSolved.toString(), unit: 'solved', icon: 'fa-check-circle', color: 'amber' },
-    { label: 'Quiz accuracy %', value: metrics.quizAccuracy.toString(), unit: '%', icon: 'fa-bullseye', color: 'rose' },
-    { label: 'Streak days', value: metrics.streak.toString(), unit: 'days', icon: 'fa-fire', color: 'orange' },
-  ];
+  const chartTextColor = isDarkMode ? '#7AB2B2' : '#09637E';
+  const gridColor = isDarkMode ? '#033b4b' : '#EBF4F6';
 
-  return (
+  const AdminView = () => (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm transition-colors">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Academic Focus</h2>
-          <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">Your progress is automatically synced with department rankings.</p>
+          <h2 className="text-3xl font-black text-brand-primary dark:text-white tracking-tight">System Overview</h2>
+          <p className="text-brand-tertiary font-medium">Monitoring university performance metrics across all departments.</p>
         </div>
-        <button 
-          onClick={toggleStudySession}
-          className={`px-12 py-5 rounded-[1.5rem] font-black text-xl transition-all flex items-center gap-4 shadow-xl ${
-            isStudying 
-            ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600' 
-            : 'bg-indigo-600 text-white shadow-indigo-500/20 hover:bg-indigo-700 hover:scale-[1.02]'
-          }`}
+        <select 
+          value={selectedDept}
+          onChange={(e) => setSelectedDept(e.target.value)}
+          className="bg-white dark:bg-dark-card border-2 border-brand-tertiary/20 px-6 py-3 rounded-2xl font-black text-sm outline-none focus:border-brand-primary transition-all text-brand-primary dark:text-white shadow-sm"
         >
-          {isStudying ? (
-            <><i className="fa-solid fa-stop-circle animate-pulse"></i> Stop Focus</>
-          ) : (
-            <><i className="fa-solid fa-play-circle"></i> Start Study</>
-          )}
-        </button>
+          {['All Departments', 'Computer Science', 'Electrical Engineering', 'Physics', 'Mathematics', 'Biology'].map(dept => <option key={dept}>{dept}</option>)}
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white dark:bg-dark-card p-8 rounded-3xl border border-slate-200 dark:border-slate-800 hover:shadow-2xl hover:border-indigo-500/30 transition-all group">
-            <div className={`w-14 h-14 bg-${stat.color}-100 dark:bg-${stat.color}-500/10 text-${stat.color}-600 dark:text-${stat.color}-400 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 group-hover:rotate-3`}>
-              <i className={`fa-solid ${stat.icon} text-xl`}></i>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Active Students', value: '4,281', icon: 'fa-users', color: 'rgb(9, 99, 126)' },
+          { label: 'Doubts Resolved', value: `${stats.doubtsResolved}/${stats.doubtsRaised}`, icon: 'fa-check-circle', color: 'rgb(8, 131, 149)' },
+          { label: 'Avg Attendance', value: '92%', icon: 'fa-user-check', color: 'rgb(122, 178, 178)' },
+          { label: 'Quiz Completion', value: '78%', icon: 'fa-tasks', color: 'rgb(9, 99, 126)' }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white dark:bg-dark-card p-8 rounded-[2rem] border border-brand-tertiary/10 dark:border-dark-border shadow-sm">
+            <div className="w-12 h-12 bg-brand-surface dark:bg-brand-primary/20 rounded-xl flex items-center justify-center mb-4" style={{ color: stat.color }}>
+              <i className={`fa-solid ${stat.icon}`}></i>
             </div>
-            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">{stat.label}</p>
-            <h3 className="text-4xl font-black text-slate-900 dark:text-white">
-              {stat.value} <span className="text-sm font-bold text-slate-400 dark:text-slate-600">{stat.unit}</span>
-            </h3>
+            <p className="text-[10px] font-black uppercase text-brand-tertiary tracking-widest mb-1">{stat.label}</p>
+            <h4 className="text-2xl font-black text-brand-primary dark:text-white">{stat.value}</h4>
           </div>
         ))}
       </div>
+    </div>
+  );
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10">
-        <div className="bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Weekly Engagement</h3>
-              <p className="text-slate-400 dark:text-slate-500 text-sm font-bold uppercase tracking-widest">Hours Logged</p>
-            </div>
-            <div className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-100 dark:border-indigo-900">
-              Department Avg: 4.2h
-            </div>
+  const TeacherView = () => (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="bg-brand-primary p-10 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-3xl font-black mb-2">Professor Portal</h2>
+          <p className="text-brand-surface mb-8 max-w-md font-medium">Manage curriculum and resolve critical student doubts in real-time.</p>
+          <div className="flex gap-4">
+            <button onClick={() => onTabChange?.('ailab')} className="bg-white text-brand-primary px-8 py-3 rounded-2xl font-black text-sm hover:bg-brand-surface transition-all shadow-lg active:scale-95">Create Class Test</button>
+            <button onClick={() => onTabChange?.('doubts')} className="bg-brand-secondary/30 text-white border border-white/20 px-8 py-3 rounded-2xl font-black text-sm hover:bg-white/10 transition-all active:scale-95">Review Doubts</button>
           </div>
-          <div className="h-80">
+        </div>
+        <div className="absolute top-0 right-0 p-10 opacity-10 text-9xl font-black tracking-tighter">TEACH</div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-brand-tertiary/10 dark:border-dark-border shadow-sm">
+          <h3 className="text-xl font-black text-brand-primary dark:text-white mb-8">Test Analytics</h3>
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData}>
+              <BarChart data={[{ name: 'Test 1', avg: 78 }, { name: 'Test 2', avg: 85 }, { name: 'Test 3', avg: 72 }, { name: 'Test 4', avg: 91 }]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 13, fontWeight: 700}} dy={15} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 13}} />
-                <Tooltip 
-                  cursor={{fill: isDarkMode ? '#1e293b' : '#f8fafc'}} 
-                  contentStyle={{ 
-                    backgroundColor: isDarkMode ? '#0f172a' : '#fff', 
-                    borderRadius: '20px', 
-                    border: isDarkMode ? '1px solid #1e293b' : 'none', 
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', 
-                    fontWeight: 'bold', 
-                    padding: '12px',
-                    color: isDarkMode ? '#fff' : '#000'
-                  }} 
-                />
-                <Bar dataKey="hours" fill="#4f46e5" radius={[8, 8, 0, 0]} barSize={45} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 12}} />
+                <Bar dataKey="avg" fill="rgb(8, 131, 149)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-
-        <div className="bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Academic Trend</h3>
-              <p className="text-slate-400 dark:text-slate-500 text-sm font-bold uppercase tracking-widest">Cumulative Score %</p>
-            </div>
-          </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={improvementData}>
-                <defs>
-                  <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 13, fontWeight: 700}} dy={15} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 13}} domain={[0, 100]} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: isDarkMode ? '#0f172a' : '#fff', 
-                    borderRadius: '20px', 
-                    border: isDarkMode ? '1px solid #1e293b' : 'none', 
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', 
-                    fontWeight: 'bold', 
-                    padding: '12px',
-                    color: isDarkMode ? '#fff' : '#000'
-                  }} 
-                />
-                <Area type="monotone" dataKey="score" stroke="#4f46e5" strokeWidth={5} fillOpacity={1} fill="url(#colorScore)" />
-              </AreaChart>
-            </ResponsiveContainer>
+        <div className="bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-brand-tertiary/10 dark:border-dark-border shadow-sm relative">
+          <h3 className="text-xl font-black text-brand-primary dark:text-white mb-8">Doubt Status</h3>
+          <div className="flex items-center justify-center h-64 relative">
+             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-8">
+                <span className="text-4xl font-black text-brand-secondary">{pendingDoubts}</span>
+                <span className="text-[10px] font-black text-brand-tertiary uppercase tracking-widest">Pending</span>
+             </div>
+             <ResponsiveContainer width="100%" height="100%">
+               <PieChart>
+                 <Pie data={[{ name: 'Resolved', value: stats.doubtsResolved }, { name: 'Pending', value: pendingDoubts }]} innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value">
+                   <Cell fill="rgb(122, 178, 178)" />
+                   <Cell fill="rgb(9, 99, 126)" strokeWidth={0} />
+                 </Pie>
+                 <Tooltip />
+               </PieChart>
+             </ResponsiveContainer>
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  const StudentView = () => (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-brand-tertiary/10 dark:border-dark-border flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div>
+          <h2 className="text-4xl font-black text-brand-primary dark:text-white mb-2 tracking-tight">Academic Pulse</h2>
+          <p className="text-brand-tertiary font-medium text-lg">Your study streak is at 14 days. Keep it up!</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          { label: 'Total Quizzes', value: stats.totalQuizzes, icon: 'fa-vial' },
+          { label: 'Professor Tests', value: stats.teacherQuizzes, icon: 'fa-chalkboard-user' },
+          { label: 'Avg Mastery %', value: '88%', icon: 'fa-graduation-cap' }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white dark:bg-dark-card p-8 rounded-3xl border border-brand-tertiary/10 dark:border-dark-border shadow-sm transition-all hover:-translate-y-1">
+            <div className="w-12 h-12 bg-brand-surface dark:bg-brand-primary/20 text-brand-secondary rounded-xl flex items-center justify-center mb-4 text-xl">
+              <i className={`fa-solid ${stat.icon}`}></i>
+            </div>
+            <p className="text-[10px] font-black uppercase text-brand-tertiary tracking-widest mb-1">{stat.label}</p>
+            <h4 className="text-3xl font-black text-brand-primary dark:text-white">{stat.value}</h4>
+          </div>
+        ))}
+      </div>
+      
+      <div className="bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-brand-tertiary/10 dark:border-dark-border shadow-sm">
+        <h3 className="text-xl font-black text-brand-primary dark:text-white mb-8">Personal Performance Trend</h3>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={[{ name: 'Wk 1', score: 65 }, { name: 'Wk 2', score: 72 }, { name: 'Wk 3', score: 85 }, { name: 'Wk 4', score: 88 }]}>
+              <defs>
+                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(8, 131, 149)" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="rgb(8, 131, 149)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 12}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: chartTextColor, fontSize: 12}} domain={[0, 100]} />
+              <Tooltip />
+              <Area type="monotone" dataKey="score" stroke="rgb(9, 99, 126)" strokeWidth={5} fill="url(#colorScore)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="pb-20">
+      {user.role === 'admin' && <AdminView />}
+      {user.role === 'teacher' && <TeacherView />}
+      {user.role === 'student' && <StudentView />}
     </div>
   );
 };

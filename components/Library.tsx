@@ -116,7 +116,6 @@ const Library: React.FC = () => {
                   className="px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-300 font-black text-xs rounded-xl border border-slate-200 dark:border-slate-700 hover:text-indigo-600 transition-all flex items-center gap-2"
                   onClick={() => alert(`We'll notify you when ${book.title} is available!`)}
                 >
-                  <i className="fa-regular fa-bell"></i>
                   Alert Me
                 </button>
               </div>

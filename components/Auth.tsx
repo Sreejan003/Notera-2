@@ -62,8 +62,15 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     e.preventDefault();
     setError(null);
 
+    // Basic Email Format Validation (Regex)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address (e.g., student@university.edu).');
+      return;
+    }
+
     if (role === 'admin') {
-      if (formData.email === 'admin' && formData.password === 'admin123') {
+      if (formData.email === 'admin@notera.com' && formData.password === 'admin123') {
         onLogin({
           id: 'admin-001',
           name: 'System Administrator',
@@ -88,11 +95,24 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         setError('Invalid email, password, or role selection.');
       }
     } else {
-      const users = getUsers();
-      if (users.find(u => u.email === formData.email)) {
-        setError('Email already exists. Please login.');
+      // Additional Sign-up Validations
+      const ageVal = parseInt(formData.age);
+      if (isNaN(ageVal) || ageVal <= 0) {
+        setError('Age must be a positive number.');
         return;
       }
+
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters long.');
+        return;
+      }
+
+      const users = getUsers();
+      if (users.find(u => u.email === formData.email)) {
+        setError('Email already exists. Please login instead.');
+        return;
+      }
+      
       const newUser: User & { password?: string, email: string } = {
         id: Math.random().toString(36).substr(2, 9),
         name: formData.name,
@@ -101,7 +121,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         role: role,
         university: formData.university,
         avatar: formData.avatar,
-        age: parseInt(formData.age) || 0,
+        age: ageVal,
         classOrDept: formData.classOrDept
       };
       saveUser(newUser);
@@ -110,33 +130,36 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   const bgClasses = {
-    student: 'bg-indigo-600',
-    teacher: 'bg-emerald-600',
-    admin: 'bg-rose-600'
+    student: 'bg-brand-primary',
+    teacher: 'bg-brand-secondary',
+    admin: 'bg-brand-primary'
   };
 
   const focusClasses = {
-    student: 'focus:border-indigo-600 dark:focus:border-indigo-500',
-    teacher: 'focus:border-emerald-600 dark:focus:border-emerald-500',
-    admin: 'focus:border-rose-500 dark:focus:border-rose-400'
+    student: 'focus:border-brand-primary dark:focus:border-brand-tertiary',
+    teacher: 'focus:border-brand-secondary dark:focus:border-brand-tertiary',
+    admin: 'focus:border-brand-primary dark:focus:border-brand-tertiary'
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-dark-bg flex items-center justify-center p-6 selection:bg-indigo-100 transition-colors duration-500">
-      {/* Theme Toggle in Auth Page */}
+    <div className="min-h-screen bg-brand-surface dark:bg-dark-bg flex items-center justify-center p-6 transition-colors duration-500">
       <button 
         onClick={() => setDarkMode(!darkMode)}
-        className="fixed top-8 right-8 w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shadow-lg transition-all hover:scale-110"
+        className="fixed top-8 right-8 w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-brand-tertiary/20 dark:border-dark-border text-brand-primary dark:text-brand-tertiary flex items-center justify-center shadow-lg transition-all hover:scale-110"
       >
         <i className={`fa-solid ${darkMode ? 'fa-moon' : 'fa-sun'}`}></i>
       </button>
 
-      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-dark-card rounded-[3rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 transition-all">
+      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-dark-card rounded-[3rem] shadow-2xl overflow-hidden border border-brand-tertiary/10 dark:border-dark-border transition-all">
         
-        {/* Left Visual Panel */}
         <div className={`${bgClasses[role]} p-16 text-white flex flex-col justify-between relative overflow-hidden transition-colors duration-700`}>
           <div className="relative z-10">
-            <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl font-black mb-10 shadow-lg border border-white/10">N</div>
+            {/* The Brand Book Logo */}
+            <div className="w-20 h-24 bg-brand-secondary rounded-r-2xl border-l-[6px] border-brand-primary flex items-center justify-center text-white text-6xl font-serif shadow-2xl mb-12 relative overflow-hidden transform hover:rotate-2 transition-transform cursor-pointer">
+              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/20"></div>
+              <span className="transform -translate-y-1 select-none">N</span>
+            </div>
+            
             <h1 className="text-5xl font-black mb-6 tracking-tight leading-none">Notera</h1>
             <p className="text-white/80 text-xl leading-relaxed max-w-sm font-medium">
               {role === 'student' && "Your academic journey starts here. Discuss, share, and solve with your campus peers."}
@@ -149,24 +172,23 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <div className="flex items-center gap-4 mb-2">
               <div className="flex -space-x-2">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white/20 bg-slate-800 overflow-hidden">
+                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white/20 bg-brand-primary overflow-hidden">
                     <img src={`https://picsum.photos/seed/${i+20}/50/50`} alt="Avatar" />
                   </div>
                 ))}
               </div>
               <span className="text-sm font-bold">Join 5,000+ users</span>
             </div>
-            <p className="text-xs text-white/60">Verified academic platform for higher education.</p>
+            <p className="text-xs text-white/60 font-bold uppercase tracking-widest">Academic Hub Verified</p>
           </div>
 
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-black/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-brand-secondary/30 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-brand-tertiary/20 rounded-full blur-3xl animate-pulse"></div>
         </div>
 
-        {/* Right Auth Form */}
         <div className="p-16 flex flex-col bg-white dark:bg-dark-card overflow-y-auto max-h-screen transition-colors duration-500">
           <div className="mb-10">
-            <div className="flex gap-2 p-1.5 bg-slate-100 dark:bg-slate-900/50 rounded-2xl mb-8">
+            <div className="flex gap-2 p-1.5 bg-brand-surface dark:bg-dark-bg rounded-2xl mb-8">
               {(['student', 'teacher', 'admin'] as const).map((r) => (
                 <button
                   key={r}
@@ -174,8 +196,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   onClick={() => { setRole(r); setStep(1); setError(null); }}
                   className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
                     role === r 
-                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
-                      : 'text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                      ? 'bg-white dark:bg-brand-primary text-brand-primary dark:text-white shadow-sm' 
+                      : 'text-brand-tertiary dark:text-slate-500 hover:text-brand-primary dark:hover:text-brand-tertiary'
                   }`}
                 >
                   {r}
@@ -184,19 +206,19 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
 
             <div className="flex justify-between items-end mb-2">
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+              <h2 className="text-3xl font-black text-brand-primary dark:text-white tracking-tighter">
                 {role === 'admin' ? 'Admin Login' : (isLogin ? 'Welcome Back' : 'Create Account')}
               </h2>
               {role !== 'admin' && (
                 <button 
                   onClick={() => { setIsLogin(!isLogin); setStep(1); setError(null); }}
-                  className="text-sm font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 transition-colors"
+                  className="text-sm font-black text-brand-secondary dark:text-brand-tertiary hover:text-brand-primary transition-colors"
                 >
                   {isLogin ? 'New here? Sign up' : 'Already a member? Login'}
                 </button>
               )}
             </div>
-            <p className="text-slate-500 dark:text-slate-400 font-medium italic">Please enter your academic credentials.</p>
+            <p className="text-brand-tertiary font-medium italic">Please enter your academic credentials.</p>
           </div>
 
           {error && (
@@ -210,52 +232,52 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             {role === 'admin' ? (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Admin Username</label>
+                  <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Admin Username</label>
                   <input 
                     required
-                    type="text"
+                    type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-rose-500 dark:focus:border-rose-400 font-bold transition-all text-slate-900 dark:text-white"
-                    placeholder="admin"
+                    className="w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none focus:border-brand-primary font-bold transition-all text-brand-primary dark:text-white"
+                    placeholder="admin@notera.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Password</label>
+                  <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Password</label>
                   <input 
                     required
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-rose-500 dark:focus:border-rose-400 font-bold transition-all text-slate-900 dark:text-white"
+                    className="w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none focus:border-brand-primary font-bold transition-all text-brand-primary dark:text-white"
                     placeholder="••••••••"
                   />
                 </div>
-                <button type="submit" className="w-full py-5 bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-100 dark:shadow-none hover:scale-[1.02] active:scale-95 transition-all">
+                <button type="submit" className="w-full py-5 bg-brand-primary text-white rounded-2xl font-black shadow-xl shadow-brand-tertiary/20 hover:scale-[1.02] active:scale-95 transition-all">
                   Access Terminal
                 </button>
               </div>
             ) : isLogin ? (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Email Address</label>
+                  <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Email Address</label>
                   <input 
                     required
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`}
+                    className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`}
                     placeholder="name@university.edu"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Password</label>
+                  <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Password</label>
                   <input 
                     required
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`}
+                    className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`}
                     placeholder="••••••••"
                   />
                 </div>
@@ -264,27 +286,26 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 </button>
               </div>
             ) : (
-              // Sign Up Steps
               <div className="space-y-5">
                 {step === 1 ? (
                   <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
                     <div className="flex flex-col items-center mb-6">
                       <div className="relative group">
-                        <img src={formData.avatar} className="w-24 h-24 rounded-3xl object-cover border-4 border-slate-100 dark:border-slate-800 shadow-md group-hover:opacity-75 transition-all" alt="Avatar" />
+                        <img src={formData.avatar} className="w-24 h-24 rounded-3xl object-cover border-4 border-brand-tertiary/30 dark:border-dark-border shadow-md group-hover:opacity-75 transition-all" alt="Avatar" />
                         <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="bg-white/90 dark:bg-dark-card/90 p-2 rounded-full shadow-lg"><i className="fa-solid fa-camera text-slate-900 dark:text-white"></i></div>
+                          <div className="bg-white/90 dark:bg-dark-card/90 p-2 rounded-full shadow-lg"><i className="fa-solid fa-camera text-brand-primary dark:text-white"></i></div>
                           <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
                         </label>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">Profile Photo</p>
+                      <p className="text-[10px] text-brand-tertiary mt-2 font-black uppercase tracking-widest">Profile Photo</p>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Full Name</label>
-                      <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`} />
+                      <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Full Name</label>
+                      <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Email Address</label>
-                      <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`} />
+                      <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Email Address</label>
+                      <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`} />
                     </div>
                     <button type="button" onClick={() => setStep(2)} className={`w-full py-5 ${bgClasses[role]} text-white rounded-2xl font-black shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2`}>
                       Next Step <i className="fa-solid fa-arrow-right text-xs"></i>
@@ -293,25 +314,25 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 ) : (
                   <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
                     <div>
-                      <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">University / College</label>
-                      <input required type="text" value={formData.university} onChange={(e) => setFormData({...formData, university: e.target.value})} className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`} />
+                      <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">University / College</label>
+                      <input required type="text" value={formData.university} onChange={(e) => setFormData({...formData, university: e.target.value})} className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Age</label>
-                        <input required type="number" value={formData.age} onChange={(e) => setFormData({...formData, age: e.target.value})} className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`} />
+                        <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Age</label>
+                        <input required type="number" min="1" value={formData.age} onChange={(e) => setFormData({...formData, age: e.target.value})} className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`} />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">{role === 'student' ? 'Class/Year' : 'Dept'}</label>
-                        <input required type="text" value={formData.classOrDept} onChange={(e) => setFormData({...formData, classOrDept: e.target.value})} className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`} />
+                        <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">{role === 'student' ? 'Class/Year' : 'Dept'}</label>
+                        <input required type="text" value={formData.classOrDept} onChange={(e) => setFormData({...formData, classOrDept: e.target.value})} className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`} />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-2">Set Password</label>
-                      <input required type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-slate-900 dark:text-white`} />
+                      <label className="block text-[10px] font-black text-brand-tertiary uppercase tracking-widest mb-2">Set Password (Min 6 Chars)</label>
+                      <input required type="password" minLength={6} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className={`w-full px-6 py-4 bg-brand-surface dark:bg-dark-bg border-2 border-brand-tertiary/20 dark:border-dark-border rounded-2xl outline-none ${focusClasses[role]} font-bold transition-all text-brand-primary dark:text-white`} />
                     </div>
                     <div className="flex gap-4">
-                      <button type="button" onClick={() => setStep(1)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Back</button>
+                      <button type="button" onClick={() => setStep(1)} className="flex-1 py-5 bg-brand-surface dark:bg-dark-bg text-brand-tertiary font-black rounded-2xl hover:bg-brand-tertiary/10 transition-all border border-brand-tertiary/20">Back</button>
                       <button type="submit" className={`flex-[2] py-5 ${bgClasses[role]} text-white rounded-2xl font-black shadow-xl hover:scale-[1.02] active:scale-95 transition-all`}>Create Account</button>
                     </div>
                   </div>

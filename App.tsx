@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Forum from './components/Forum';
+import Doubts from './components/Doubts';
+import Announcements from './components/Announcements';
 import NotesSection from './components/NotesSection';
 import AILab from './components/AILab';
 import Library from './components/Library';
@@ -12,9 +14,7 @@ import { User } from './types';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('notera-theme') === 'dark';
-  });
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('notera-theme') === 'dark');
 
   useEffect(() => {
     if (darkMode) {
@@ -32,66 +32,68 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setUser(null);
+    setActiveTab('dashboard');
   };
 
-  if (!user) {
-    return <Auth onLogin={handleLogin} />;
-  }
+  if (!user) return <Auth onLogin={handleLogin} />;
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard isDarkMode={darkMode} />;
+        return <Dashboard 
+          user={user} 
+          isDarkMode={darkMode} 
+          onTabChange={setActiveTab}
+        />;
       case 'forum':
-        return <Forum university={user.university} />;
+        return <Forum user={user} />;
+      case 'doubts':
+        return <Doubts user={user} />;
+      case 'announcements':
+        return <Announcements user={user} />;
       case 'notes':
-        return <NotesSection />;
+        return <NotesSection user={user} />;
       case 'ailab':
-        return <AILab />;
+        return <AILab user={user} />;
       case 'library':
         return <Library />;
       default:
-        return <Dashboard isDarkMode={darkMode} />;
+        return <Dashboard user={user} isDarkMode={darkMode} onTabChange={setActiveTab} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-dark-bg overflow-hidden theme-transition">
+    <div className="flex h-screen bg-brand-surface dark:bg-dark-bg overflow-hidden theme-transition font-sans">
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         onLogout={handleLogout}
         darkMode={darkMode}
         toggleDarkMode={() => setDarkMode(!darkMode)}
+        user={user}
       />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="sticky top-0 z-30 flex items-center justify-between bg-white/80 dark:bg-dark-card/80 backdrop-blur-md px-8 py-4 border-b border-slate-200 dark:border-slate-800 transition-colors">
+        <header className="sticky top-0 z-30 flex items-center justify-between bg-white/80 dark:bg-dark-card/80 backdrop-blur-md px-8 py-4 border-b border-brand-tertiary/20 dark:border-brand-primary/30 transition-colors">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-black text-slate-800 dark:text-white capitalize tracking-tight">
-              {activeTab === 'ailab' ? 'AI Quiz Lab' : activeTab}
+            <h1 className="text-xl font-black text-brand-primary dark:text-white capitalize tracking-tight">
+              {activeTab === 'ailab' ? 'AI Quiz' : activeTab}
             </h1>
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-            <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 border border-transparent dark:border-slate-700">
-              <i className="fa-solid fa-building-columns text-indigo-500"></i>
+            <div className="h-6 w-px bg-brand-tertiary/30 dark:bg-brand-primary/50"></div>
+            
+            <div className="hidden lg:flex bg-brand-surface dark:bg-brand-primary/20 text-brand-primary dark:text-brand-tertiary px-4 py-1.5 rounded-full text-sm font-bold items-center gap-2 border border-brand-tertiary/10 dark:border-brand-primary/40">
+              <i className="fa-solid fa-building-columns text-brand-secondary"></i>
               {user.university}
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-              <i className="fa-solid fa-bell"></i>
-            </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-3 pl-4 border-l border-brand-tertiary/30 dark:border-brand-primary/40">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-slate-800 dark:text-white">{user.name}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{user.role} • {user.classOrDept}</p>
+                <p className="text-sm font-black text-brand-primary dark:text-white">{user.name}</p>
+                <p className="text-[10px] text-brand-secondary dark:text-brand-tertiary font-bold uppercase tracking-widest">{user.role} • {user.classOrDept || user.department}</p>
               </div>
-              <img 
-                src={user.avatar} 
-                alt="Avatar" 
-                className="w-10 h-10 rounded-full border-2 border-indigo-100 dark:border-indigo-900 object-cover"
-              />
+              <img src={user.avatar} className="w-10 h-10 rounded-full border-2 border-brand-tertiary dark:border-brand-primary object-cover" alt="User" />
             </div>
           </div>
         </header>
@@ -100,14 +102,6 @@ const App: React.FC = () => {
           {renderContent()}
         </div>
       </main>
-
-      <button 
-        className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-2xl shadow-indigo-500/30 flex items-center justify-center text-xl transition-all hover:scale-110 active:scale-95 z-50 group"
-        title="Quick AI Help"
-        onClick={() => setActiveTab('ailab')}
-      >
-        <i className="fa-solid fa-wand-magic-sparkles group-hover:rotate-12 transition-transform"></i>
-      </button>
     </div>
   );
 };

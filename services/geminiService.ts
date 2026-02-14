@@ -1,17 +1,24 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
+const cleanJsonString = (str: string) => {
+  return str.replace(/```json\n?|```/g, '').trim();
+};
+
 export const generateQuiz = async (subject: string, topic: string) => {
-  // Directly use process.env.API_KEY as per GenAI SDK guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `You are an elite university professor. Generate a high-quality, mathematically rigorous 5-question multiple choice quiz about "${topic}" in the field of "${subject}". 
-      IMPORTANT: Use actual mathematical signs and LaTeX formatting for all equations (e.g., use $x^2$ for inline and $$ ... $$ for blocks). 
+      contents: `You are an elite university professor from India. Generate a high-quality, mathematically rigorous 5-question multiple choice quiz about "${topic}" in the field of "${subject}". 
+      
+      IMPORTANT FORMATTING RULES:
+      1. Use LaTeX for ALL mathematical expressions ($...$ for inline, $$...$$ for block).
+      2. For scientific notation, ALWAYS use standard LaTeX form (e.g., $1.23 \times 10^{10}$).
+      
       Ensure the questions require analytical thinking.
-      Return ONLY a JSON array of objects with the following keys: 'question', 'options' (array of 4 strings), 'correctAnswer' (0-3 index), and 'explanation'.`,
+      Return ONLY a JSON array of objects.`,
       config: {
         responseMimeType: "application/json",
         thinkingConfig: { thinkingBudget: 4000 },
@@ -34,28 +41,29 @@ export const generateQuiz = async (subject: string, topic: string) => {
       }
     });
 
-    const text = response.text;
-    return JSON.parse(text || '[]');
+    const text = cleanJsonString(response.text || '[]');
+    return JSON.parse(text);
   } catch (e) {
     console.error("Quiz generation error:", e);
-    throw new Error("Failed to generate quiz. Please check your connection or try a different topic.");
+    throw new Error("Failed to generate quiz. Please try a different topic.");
   }
 };
 
 export const solveDoubt = async (subject: string, question: string) => {
-  // Directly use process.env.API_KEY as per GenAI SDK guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `You are a helpful university professor specializing in ${subject}. Provide a mathematically and logically sound explanation for the following student question: "${question}". 
-      IMPORTANT: You MUST use actual mathematical signs and LaTeX notation for all formulas, variables, and calculations. Use $...$ for inline math and $$...$$ for display math. 
-      Use step-by-step reasoning. Make it look like a professional textbook entry.`,
+      contents: `You are a helpful university professor from India specializing in ${subject}. Provide a mathematically and logically sound explanation for the following student question: "${question}". 
+      
+      IMPORTANT FORMATTING RULES:
+      1. You MUST use LaTeX for ALL mathematical expressions.
+      2. Use clear, step-by-step reasoning like a professional textbook entry.`,
       config: {
         temperature: 0.4,
         topP: 0.95,
-        thinkingConfig: { thinkingBudget: 2000 }
+        thinkingConfig: { thinkingBudget: 4000 }
       }
     });
 
@@ -67,13 +75,12 @@ export const solveDoubt = async (subject: string, question: string) => {
 };
 
 export const checkContentSafety = async (text: string): Promise<{ safe: boolean; reason?: string }> => {
-  // Directly use process.env.API_KEY as per GenAI SDK guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Act as a university forum moderator. Analyze this post for harassment, profanity, or blatant academic dishonesty. Return JSON: { "safe": boolean, "reason": "string or null" }. Content: "${text}"`,
+      contents: `Act as a university forum moderator. Analyze this post for harassment or blatant academic dishonesty. Return JSON: { "safe": boolean, "reason": "string or null" }. Content: "${text}"`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -87,7 +94,7 @@ export const checkContentSafety = async (text: string): Promise<{ safe: boolean;
       }
     });
 
-    return JSON.parse(response.text || '{"safe":true}');
+    return JSON.parse(cleanJsonString(response.text || '{"safe":true}'));
   } catch (e) {
     return { safe: true };
   }
