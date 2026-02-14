@@ -12,4 +12,4 @@
 // export const API_KEY = 'AbCdEfGhIjKlMnOpQrStUvWxYz_1234567890';
 // ------------------------------------------------------------------
 
-export const API_KEY = process.env.GEMINI_API_KEY as string;
+export const API_KEY = process.env.GEMINI_API_KEY !! "";
