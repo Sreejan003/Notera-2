@@ -6,6 +6,7 @@ const cleanJsonString = (str: string) => {
 };
 
 export const generateQuiz = async (subject: string, topic: string) => {
+  // Always create a new instance right before the call to catch updated process.env.API_KEY
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
@@ -45,7 +46,7 @@ export const generateQuiz = async (subject: string, topic: string) => {
     return JSON.parse(text);
   } catch (e) {
     console.error("Quiz generation error:", e);
-    throw new Error("Failed to generate quiz. Please try a different topic.");
+    throw new Error("Failed to generate quiz. Please ensure your API key is correctly configured and has credits.");
   }
 };
 
@@ -70,7 +71,7 @@ export const solveDoubt = async (subject: string, question: string) => {
     return response.text;
   } catch (e) {
     console.error("Doubt solver error:", e);
-    throw new Error("Could not reach the AI Tutor. Please try again.");
+    throw new Error("Could not reach the AI Tutor. Please verify your API key.");
   }
 };
 
