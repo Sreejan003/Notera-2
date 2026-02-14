@@ -1,13 +1,21 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
+import { API_KEY } from '../config';
 
 const cleanJsonString = (str: string) => {
   return str.replace(/```json\n?|```/g, '').trim();
 };
 
+const getAiClient = () => {
+  if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
+    // This case should be caught by App.tsx, but this is a safeguard.
+    throw new Error("API Key not configured. Please set your API key in config.ts");
+  }
+  return new GoogleGenAI({ apiKey: API_KEY });
+};
+
 export const generateQuiz = async (subject: string, topic: string) => {
-  // Always create a new instance right before the call to catch updated process.env.API_KEY
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = getAiClient();
   
   try {
     const response = await ai.models.generateContent({
@@ -51,7 +59,7 @@ export const generateQuiz = async (subject: string, topic: string) => {
 };
 
 export const solveDoubt = async (subject: string, question: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = getAiClient();
   
   try {
     const response = await ai.models.generateContent({
@@ -76,7 +84,7 @@ export const solveDoubt = async (subject: string, question: string) => {
 };
 
 export const checkContentSafety = async (text: string): Promise<{ safe: boolean; reason?: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = getAiClient();
   
   try {
     const response = await ai.models.generateContent({

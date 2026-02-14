@@ -11,28 +11,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [role, setRole] = useState<'student' | 'teacher' | 'admin'>('student');
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [hasApiKey, setHasApiKey] = useState<boolean>(true);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('notera-theme') === 'dark';
   });
-
-  // API Key Check for specialized browser environments
-  useEffect(() => {
-    const checkApiKey = async () => {
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(hasKey);
-      }
-    };
-    checkApiKey();
-  }, []);
-
-  const handleOpenKeyPicker = async () => {
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
-      await window.aistudio.openSelectKey();
-      setHasApiKey(true); // Assume success per guidelines
-    }
-  };
 
   useEffect(() => {
     if (darkMode) {
@@ -187,40 +168,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </p>
           </div>
 
-          <div className="relative z-10 space-y-4">
-            {!hasApiKey && (
-              <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10 animate-pulse">
-                <p className="text-xs font-black uppercase tracking-widest mb-3">AI Engine Required</p>
-                <button 
-                  onClick={handleOpenKeyPicker}
-                  className="w-full py-3 bg-white text-brand-primary rounded-xl font-black text-xs shadow-lg hover:bg-brand-surface transition-all flex items-center justify-center gap-2"
-                >
-                  <i className="fa-solid fa-key"></i> Connect API Key
-                </button>
-                <a 
-                  href="https://ai.google.dev/gemini-api/docs/billing" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block text-center text-[10px] mt-3 underline opacity-70 hover:opacity-100"
-                >
-                  Billing Documentation
-                </a>
+          <div className="relative z-10 bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="flex -space-x-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white/20 bg-brand-primary overflow-hidden">
+                    <img src={`https://picsum.photos/seed/${i+20}/50/50`} alt="Avatar" />
+                  </div>
+                ))}
               </div>
-            )}
-            
-            <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white/20 bg-brand-primary overflow-hidden">
-                      <img src={`https://picsum.photos/seed/${i+20}/50/50`} alt="Avatar" />
-                    </div>
-                  ))}
-                </div>
-                <span className="text-sm font-bold">Join 5,000+ users</span>
-              </div>
-              <p className="text-xs text-white/60 font-bold uppercase tracking-widest">Academic Hub Verified</p>
+              <span className="text-sm font-bold">Join 5,000+ users</span>
             </div>
+            <p className="text-xs text-white/60 font-bold uppercase tracking-widest">Academic Hub Verified</p>
           </div>
 
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-brand-secondary/30 rounded-full blur-3xl animate-pulse"></div>

@@ -9,12 +9,17 @@ import NotesSection from './components/NotesSection';
 import AILab from './components/AILab';
 import Library from './components/Library';
 import Auth from './components/Auth';
+import ApiKeyInstructions from './components/ApiKeyInstructions';
 import { User } from './types';
+import { API_KEY } from './config';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('notera-theme') === 'dark');
+
+  // Check if API key is set in the config file
+  const isApiKeySet = API_KEY && API_KEY !== 'YOUR_API_KEY_HERE';
 
   useEffect(() => {
     if (darkMode) {
@@ -34,6 +39,10 @@ const App: React.FC = () => {
     setUser(null);
     setActiveTab('dashboard');
   };
+
+  if (!isApiKeySet) {
+    return <ApiKeyInstructions />;
+  }
 
   if (!user) return <Auth onLogin={handleLogin} />;
 
