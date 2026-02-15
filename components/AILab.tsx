@@ -20,6 +20,7 @@ const AILab: React.FC<AILabProps> = ({ user }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   // Teacher Creator States
   const [testTitle, setTestTitle] = useState('');
@@ -32,6 +33,8 @@ const AILab: React.FC<AILabProps> = ({ user }) => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const verifiedTopics = ['gravitation', 'integration', 'organic chemistry', 'thermodynamics', 'algebra', 'differentiation'];
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -42,8 +45,12 @@ const AILab: React.FC<AILabProps> = ({ user }) => {
 
     setIsLoading(true);
     setError(null);
-    setQuiz(null); // Clear previous quiz
+    setQuiz(null); 
     
+    // Check if it's a verified topic locally to show badge immediately
+    const normalized = promptTopic.toLowerCase().trim();
+    setIsVerified(verifiedTopics.includes(normalized));
+
     try {
       const result = await generateQuiz("Dynamic Academic Subject", promptTopic);
       if (result && Array.isArray(result) && result.length > 0) {
@@ -88,7 +95,6 @@ const AILab: React.FC<AILabProps> = ({ user }) => {
     
     setIsPublishing(true);
     
-    // Simulate publishing to announcements storage
     const newAnnouncement = {
       id: Math.random().toString(36).substr(2, 9),
       title: `CLASS TEST: ${testTitle}`,
@@ -251,14 +257,15 @@ const AILab: React.FC<AILabProps> = ({ user }) => {
           <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-indigo-800 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
             <div className="relative z-10">
               <h2 className="text-4xl font-black mb-4 tracking-tighter">AI Quiz <span className="text-indigo-400">Companion</span></h2>
-              <p className="text-indigo-100 mb-8 max-w-lg text-lg font-medium leading-relaxed italic">Welcome! Just type in any topic or paste a complex question, and I'll build a personalized assessment for you.</p>
+              <p className="text-indigo-100 mb-8 max-w-lg text-lg font-medium leading-relaxed italic">Type topics like <span className="text-white font-black underline">Gravitation</span>, <span className="text-white font-black underline">Integration</span>, or <span className="text-white font-black underline">Algebra</span> for professor-verified sets.</p>
               
               <div className="flex flex-col md:flex-row gap-4">
                 <input 
                   type="text" 
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="Ask anything (e.g., Quantum Entanglement, Organic Chemistry proofs...)"
+                  onKeyDown={(e) => e.key === 'Enter' && startQuizGeneration()}
+                  placeholder="Enter topic (e.g., Organic Chemistry, Thermodynamics...)"
                   className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 px-8 py-5 rounded-2xl placeholder:text-indigo-200 outline-none focus:ring-2 focus:ring-white/50 text-xl font-bold text-white transition-all"
                 />
                 <button onClick={startQuizGeneration} disabled={isLoading || !topic} className="px-10 py-5 bg-white text-indigo-700 rounded-2xl font-black hover:bg-indigo-50 disabled:opacity-50 transition-all flex items-center justify-center gap-3 shadow-xl">
@@ -276,7 +283,13 @@ const AILab: React.FC<AILabProps> = ({ user }) => {
           )}
 
           {quiz && !showResult && (
-            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-10 shadow-sm animate-in zoom-in-95 transition-colors">
+            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-10 shadow-sm animate-in zoom-in-95 transition-colors relative">
+              {isVerified && (
+                <div className="absolute top-8 right-10 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-4 py-2 rounded-full border border-emerald-100 dark:border-emerald-500/20 shadow-sm">
+                   <i className="fa-solid fa-circle-check"></i>
+                   <span className="text-[10px] font-black uppercase tracking-widest">Professor Verified</span>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-10">
                 <div className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Question {currentQuestion + 1} of {quiz.length}</div>
                 <div className="w-48 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">

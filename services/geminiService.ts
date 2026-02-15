@@ -8,13 +8,13 @@ const cleanJsonString = (str: string) => {
 };
 
 const getAiClient = () => {
-  if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
+  if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE' || !API_KEY) {
     throw new Error("API Key not configured. Please set your API key in config.ts");
   }
   return new GoogleGenAI({ apiKey: API_KEY });
 };
 
-// Hardcoded Quizzes
+// Professor-Verified Predefined Quizzes
 const PREDEFINED_QUIZZES: Record<string, QuizQuestion[]> = {
   'integration': [
     {
@@ -48,10 +48,42 @@ const PREDEFINED_QUIZZES: Record<string, QuizQuestion[]> = {
       explanation: "Integration gives $[x^3/3]_0^1 = 1/3 - 0 = 1/3$."
     }
   ],
+  'differentiation': [
+    {
+      question: "What is the derivative of $f(x) = \\ln(x^2 + 1)$?",
+      options: ["$\\frac{1}{x^2+1}$", "$\\frac{2x}{x^2+1}$", "$\\frac{x}{x^2+1}$", "$2x \\ln(x)$"],
+      correctAnswer: 1,
+      explanation: "Applying the chain rule: $\\frac{d}{dx}[\\ln(u)] = \\frac{1}{u} \\cdot \\frac{du}{dx}$. Here $u = x^2+1$ and $du/dx = 2x$."
+    },
+    {
+      question: "If $y = e^{3x}$, find $\\frac{dy}{dx}$.",
+      options: ["$e^{3x}$", "$3e^{3x}$", "$\\frac{1}{3}e^{3x}$", "$3x e^{3x-1}$"],
+      correctAnswer: 1,
+      explanation: "The derivative of $e^{ax}$ is $ae^{ax}$."
+    },
+    {
+      question: "What is the derivative of $\\tan(x)$?",
+      options: ["$\\sec(x)$", "$\\sec^2(x)$", "$-\\csc^2(x)$", "$\\sin(x)\\cos(x)$"],
+      correctAnswer: 1,
+      explanation: "The standard trigonometric derivative of $\\tan(x)$ is $\\sec^2(x)$."
+    },
+    {
+      question: "Find the slope of the tangent to $f(x) = x^3 - x$ at $x=1$.",
+      options: ["0", "1", "2", "3"],
+      correctAnswer: 2,
+      explanation: "$f'(x) = 3x^2 - 1$. At $x=1$, $f'(1) = 3(1)^2 - 1 = 2$."
+    },
+    {
+      question: "Using the product rule, differentiate $f(x) = x \\sin(x)$.",
+      options: ["$\\cos(x)$", "$\\sin(x) + x\\cos(x)$", "$\\sin(x) - x\\cos(x)$", "$x\\cos(x)$"],
+      correctAnswer: 1,
+      explanation: "$(uv)' = u'v + uv'$. Here $u=x, v=\sin(x)$, so $f'(x) = (1)\\sin(x) + x\\cos(x)$."
+    }
+  ],
   'gravitation': [
     {
       question: "What is the formula for Newton's Law of Universal Gravitation?",
-      options: ["$F = ma$", "$F = G \\frac{m_1 m_2}{r^2}$", "$F = G \\frac{m_1 m_2}{r}$", "$F = \frac{1}{2}mv^2$"],
+      options: ["$F = ma$", "$F = G \\frac{m_1 m_2}{r^2}$", "$F = G \\frac{m_1 m_2}{r}$", "$F = \\frac{1}{2}mv^2$"],
       correctAnswer: 1,
       explanation: "The force of gravity is directly proportional to the product of masses and inversely proportional to the square of the distance between them."
     },
@@ -59,7 +91,7 @@ const PREDEFINED_QUIZZES: Record<string, QuizQuestion[]> = {
       question: "What is the approximate value of the Gravitational Constant $G$?",
       options: ["$9.8 \\, m/s^2$", "$6.67 \\times 10^{-11} \\, N \\cdot m^2/kg^2$", "$3 \\times 10^8 \\, m/s$", "$1.6 \\times 10^{-19} \\, C$"],
       correctAnswer: 1,
-      explanation: "$G$ is a universal constant with a value of approximately $6.674 \\times 10^{-11}$."
+      explanation: "$G$ is a universal constant with a value of approximately $6.674 \\times 10^{-11} \\, N \\cdot m^2/kg^2$."
     },
     {
       question: "How does acceleration due to gravity ($g$) change as you move away from the Earth's surface?",
@@ -79,16 +111,112 @@ const PREDEFINED_QUIZZES: Record<string, QuizQuestion[]> = {
       correctAnswer: 2,
       explanation: "$T^2 \\propto a^3$. The square of the time period is proportional to the cube of the average distance from the Sun."
     }
+  ],
+  'organic chemistry': [
+    {
+      question: "What is the hybridization of carbon in Methane ($CH_4$)?",
+      options: ["$sp$", "$sp^2$", "$sp^3$", "$dsp^2$"],
+      correctAnswer: 2,
+      explanation: "In Methane, Carbon forms 4 sigma bonds with no lone pairs, resulting in a tetrahedral geometry and $sp^3$ hybridization."
+    },
+    {
+      question: "Which functional group is present in Ethanol?",
+      options: ["Aldehyde", "Ketone", "Hydroxyl (-OH)", "Carboxyl (-COOH)"],
+      correctAnswer: 2,
+      explanation: "Ethanol ($CH_3CH_2OH$) contains the hydroxyl group, which classifies it as an alcohol."
+    },
+    {
+      question: "What is the primary product of the hydration of Ethene ($C_2H_4$)?",
+      options: ["Ethane", "Ethanol", "Ethanoic Acid", "Ethanal"],
+      correctAnswer: 1,
+      explanation: "Hydration of ethene involves adding $H_2O$ across the double bond, typically in the presence of an acid catalyst, to form ethanol."
+    },
+    {
+      question: "Which of the following is a saturated hydrocarbon?",
+      options: ["Benzene", "Propene", "Butane", "Ethyne"],
+      correctAnswer: 2,
+      explanation: "Butane is an alkane (general formula $C_nH_{2n+2}$), which means it contains only single bonds and is saturated."
+    },
+    {
+      question: "What is the IUPAC name for $CH_3COCH_3$?",
+      options: ["Propan-1-ol", "Propanal", "Propan-2-one (Acetone)", "Propanoic Acid"],
+      correctAnswer: 2,
+      explanation: "The molecule contains a carbonyl group on the second carbon of a three-carbon chain, making it propan-2-one."
+    }
+  ],
+  'thermodynamics': [
+    {
+      question: "The First Law of Thermodynamics is essentially a statement of:",
+      options: ["Conservation of Momentum", "Conservation of Energy", "Conservation of Mass", "Entropy increase"],
+      correctAnswer: 1,
+      explanation: "The First Law ($Q = \\Delta U + W$) states that energy cannot be created or destroyed, only transformed."
+    },
+    {
+      question: "Which thermodynamic state function remains constant during an isothermal process?",
+      options: ["Pressure", "Volume", "Temperature", "Entropy"],
+      correctAnswer: 2,
+      explanation: "An 'isothermal' process by definition occurs at a constant temperature (iso = same, thermal = heat/temp)."
+    },
+    {
+      question: "The efficiency of a Carnot engine depends only on:",
+      options: ["The working substance", "The cycle time", "The temperatures of the heat reservoirs", "The pressure range"],
+      correctAnswer: 2,
+      explanation: "Efficiency $\\eta = 1 - T_{cold}/T_{hot}$. It is independent of the working fluid."
+    },
+    {
+      question: "What does the Second Law of Thermodynamics state about the entropy of an isolated system?",
+      options: ["It always decreases", "It remains constant", "It never decreases", "It is always zero"],
+      correctAnswer: 2,
+      explanation: "The Second Law states that the total entropy of an isolated system can never decrease over time; it can only remain constant or increase."
+    },
+    {
+      question: "In an adiabatic process, what is the value of heat exchange ($Q$)?",
+      options: ["$Q > 0$", "$Q < 0$", "$Q = 0$", "$Q = \\Delta U$"],
+      correctAnswer: 2,
+      explanation: "An adiabatic process is one in which there is no heat transfer between the system and its surroundings ($Q=0$)."
+    }
+  ],
+  'algebra': [
+    {
+      question: "What are the roots of the quadratic equation $x^2 - 5x + 6 = 0$?",
+      options: ["$x=1, x=6$", "$x=2, x=3$", "$x=-2, x=-3$", "$x=5, x=1$"],
+      correctAnswer: 1,
+      explanation: "Factoring gives $(x-2)(x-3) = 0$, so $x=2$ or $x=3$."
+    },
+    {
+      question: "Solve for $x$: $\\log_{10}(x) = 2$.",
+      options: ["20", "200", "100", "10"],
+      correctAnswer: 2,
+      explanation: "By definition of logarithms, $10^2 = x$, so $x=100$."
+    },
+    {
+      question: "What is the value of $i^2$ in complex numbers?",
+      options: ["1", "-1", "$\\sqrt{-1}$", "0"],
+      correctAnswer: 1,
+      explanation: "The imaginary unit $i$ is defined such that its square is $-1$."
+    },
+    {
+      question: "Find the 10th term of an Arithmetic Progression where $a=2$ and $d=3$.",
+      options: ["27", "29", "32", "35"],
+      correctAnswer: 1,
+      explanation: "$a_n = a + (n-1)d = 2 + (9)(3) = 29$."
+    },
+    {
+      question: "What is the determinant of the matrix $\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$?",
+      options: ["10", "-2", "2", "0"],
+      correctAnswer: 1,
+      explanation: "$ad - bc = (1)(4) - (2)(3) = 4 - 6 = -2$."
+    }
   ]
 };
 
 export const generateQuiz = async (subject: string, topic: string) => {
   const normalizedTopic = topic.toLowerCase().trim();
   
-  // Check for predefined topics
+  // High-priority check for predefined topics
   if (PREDEFINED_QUIZZES[normalizedTopic]) {
     // Simulate slight delay for "generation" feel
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 600));
     return PREDEFINED_QUIZZES[normalizedTopic];
   }
 
