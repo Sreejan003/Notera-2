@@ -28,6 +28,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, isDarkMode, onTabChange }) 
     }
   }, []);
 
+  const handleSystemReset = () => {
+    if (confirm("WARNING: This will permanently delete all users, posts, notes, and doubts from the local database. Are you sure?")) {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('notera_')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      window.location.reload();
+    }
+  };
+
   // Performance Data
   const stats: AcademicStats = {
     totalQuizzes: 156,
@@ -49,13 +63,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, isDarkMode, onTabChange }) 
           <h2 className="text-3xl font-black text-brand-primary dark:text-white tracking-tight">System Overview</h2>
           <p className="text-brand-tertiary font-medium">Monitoring university performance metrics across all departments.</p>
         </div>
-        <select 
-          value={selectedDept}
-          onChange={(e) => setSelectedDept(e.target.value)}
-          className="bg-white dark:bg-dark-card border-2 border-brand-tertiary/20 px-6 py-3 rounded-2xl font-black text-sm outline-none focus:border-brand-primary transition-all text-brand-primary dark:text-white shadow-sm"
-        >
-          {['All Departments', 'Computer Science', 'Electrical Engineering', 'Physics', 'Mathematics', 'Biology'].map(dept => <option key={dept}>{dept}</option>)}
-        </select>
+        <div className="flex gap-4">
+          <button 
+            onClick={handleSystemReset}
+            className="bg-rose-500 text-white px-6 py-3 rounded-2xl font-black text-xs hover:bg-rose-600 transition-all shadow-lg active:scale-95 flex items-center gap-2"
+          >
+            <i className="fa-solid fa-trash-can"></i> Reset Database
+          </button>
+          <select 
+            value={selectedDept}
+            onChange={(e) => setSelectedDept(e.target.value)}
+            className="bg-white dark:bg-dark-card border-2 border-brand-tertiary/20 px-6 py-3 rounded-2xl font-black text-sm outline-none focus:border-brand-primary transition-all text-brand-primary dark:text-white shadow-sm"
+          >
+            {['All Departments', 'Computer Science', 'Electrical Engineering', 'Physics', 'Mathematics', 'Biology'].map(dept => <option key={dept}>{dept}</option>)}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
